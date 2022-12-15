@@ -1,7 +1,0 @@
-environment:
-  CONNECTION_STR: ${CONNECTION_STR}
-packages:
-  - name: recipegen
-    actions:
-      - name: function
-        runtime: 'python:default'
