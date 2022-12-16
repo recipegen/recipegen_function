@@ -15,41 +15,54 @@ def get_database():
 def home():
     return 'Recipe Generation API'
 
-@app.route('/get_item_cats')
-def get_item_cats():
+@app.route('/get_item_details')
+def get_item_details():
     db = get_database()
     items = request.args.getlist('item')
 
-    item_jsons = list(db.item_category_map.find({'item': { "$in" : items }}))
+    item_jsons = list(db.item_details.find({'item': { "$in" : items }}))
     to_return = {}
     for item in item_jsons:
-        if item['reviewed']:
-            to_return[item['item']] = item['category']
-        else:
-            to_return[item['item']] = ''
-    for item in items:
-        if item not in to_return:
-            to_return[item] = ''
+        to_return[item['item']] = {}
+        to_return[item['item']]['category'] = item['category']
+        to_return[item['item']]['tags'] = item['tags']
     
     return to_return
 
 @app.route('/get_recipe_ids')
 def get_recipe_ids():
     db = get_database()
-    bad_items = request.args.getlist('bad_items')
+    dietary = request.args.getlist('dietary')
+    allergy = request.args.getlist('allergy')
+    exclude_items = request.args.getlist('exclude_items')
 
-    recipe_jsons = list(db.recipe_details.find())
+    recipe_query = {}
+    if len(allergy) > 0:
+        recipe_query = {'allergens.immediate': {'$nin': allergy}}
+
+    items_query = {}
+    if len(dietary) > 0 and len(exclude_items) == 0:
+        items_query = {'tags': {'$all': dietary}}
+    elif len(dietary) == 0 and len(exclude_items) > 0:
+        items_query = {'item': {'$nin': exclude_items}}
+    elif len(dietary) > 0 and len(exclude_items > 0):
+        items_query = {'$and': [{'tags': {'$all': dietary}}, {'item': {'$nin': exclude_items}}]}
+
+    recipe_jsons = list(db.recipe_details.find(recipe_query))
+    item_jsons = list(db.item_details.find(items_query))
+    item_list = [x['item'] for x in item_jsons]
+
     output_ids = []
     for recipe_json in recipe_jsons:
         found_bad_item = False
         for item in recipe_json['recipe']:
-            if item['item'] in bad_items:
+            if item['item'] not in item_list:
                 found_bad_item = True
                 break
         if not found_bad_item:
             output_ids.append(str(recipe_json['_id']))
     
-    return output_ids
+    return {'ids': output_ids}
 
 @app.route('/get_recipe_ingredients')
 def get_recipe_ingredients():
