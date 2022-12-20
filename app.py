@@ -45,7 +45,7 @@ def get_recipe_ids():
         items_query = {'tags': {'$all': dietary}}
     elif len(dietary) == 0 and len(exclude_items) > 0:
         items_query = {'item': {'$nin': exclude_items}}
-    elif len(dietary) > 0 and len(exclude_items > 0):
+    elif len(dietary) > 0 and len(exclude_items) > 0:
         items_query = {'$and': [{'tags': {'$all': dietary}}, {'item': {'$nin': exclude_items}}]}
 
     recipe_jsons = list(db.recipe_details.find(recipe_query))
